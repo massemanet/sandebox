@@ -1,0 +1,13 @@
+{application, sandebox,
+ [
+  {description, "an erlang sandbox-as-a-service"},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  inets
+                 ]},
+  {mod, { sandebox_app, []}},
+  {env, []}
+ ]}.
