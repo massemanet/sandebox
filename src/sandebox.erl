@@ -7,6 +7,9 @@
 -module('sandebox').
 -author('mats cronqvist').
 
+%% mod_fun callback
+-export([do/2]).
+
 %% the API
 -export([start/0,stop/0,state/0,unlink/0]).
 
@@ -42,7 +45,43 @@ state() ->
 
 %% for application supervisor
 start_link() ->
-  gen_server:start_link({local,?MODULE},?MODULE,[],[]).
+  [inets:start() || not is_started(inets)],
+  inets:start(httpd,conf()),
+  rets_tables:start_link().
+
+is_started(A) ->
+  lists:member(A,[X || {X,_,_} <- application:which_applications()]).
+
+conf() ->
+  Root = filename:join("/tmp",?MODULE),
+  [{port, 8765},
+   {server_name,atom_to_list(?MODULE)},
+   {server_root,ensure(Root)},
+   {document_root,ensure(Root)},
+   {modules, [mod_alias,mod_fun,mod_log]},
+   {error_log,filename:join(ensure(Root),"errors.log")},
+   {handler_function,{?MODULE,do}},
+   {mime_types,[{"html","text/html"},
+                {"css","text/css"},
+                {"ico","image/x-icon"},
+                {"js","application/javascript"}]}].
+
+ensure(X) ->
+  filelib:ensure_dir(X++"/"),
+  X.
+
+%% called from mod_fun. runs in a fresh process.
+%% Req is a dict with the request data from inets. It is implemented
+%% as a fun/1, with the arg being the key in the dict.
+%% we can deliver the content in chunks by calling Act(Chunk).
+%% the first chunk can be headers; [{Key,Val}]
+%% if we don't want to handle the request, we do Act(defer)
+%% if we crash, there will be a 404.
+do(Act,Req) ->
+  case {Req(method),string:tokens(Req(request_uri),"/")} of
+    {"GET", []} -> Act("sandebox");
+    {M,P}       -> Act("sandebox default: "++M++": "++P)
+  end.
 
 %% gen_server callbacks
 init(_) ->
