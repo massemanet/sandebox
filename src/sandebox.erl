@@ -46,14 +46,17 @@ state() ->
 %% for application supervisor
 start_link() ->
   [inets:start() || not is_started(inets)],
-  inets:start(httpd,conf()),
-  rets_tables:start_link().
+  inets:start(httpd,conf()).
 
 is_started(A) ->
   lists:member(A,[X || {X,_,_} <- application:which_applications()]).
 
 conf() ->
-  Root = filename:join("/tmp",?MODULE),
+  Root =
+    case application:get_env(kernel,error_logger) of
+      {ok,{file,File}} -> filename:dirname(File);
+      _ -> filename:join("/tmp",?MODULE)
+    end,
   [{port, 8765},
    {server_name,atom_to_list(?MODULE)},
    {server_root,ensure(Root)},
