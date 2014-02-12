@@ -82,9 +82,23 @@ ensure(X) ->
 %% if we crash, there will be a 404.
 do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
-    {"GET", []} -> Act("sandebox");
+    {"GET", []} -> Act(ship("index.html"));
+    {"POST", U} -> Act(flat({U,Req(entity_body)}));
     {M,P}       -> Act("sandebox default: "++M++": "++P)
   end.
+
+flat(T) ->
+  lists:flatten(io_lib:fwrite("~p",[T])).
+
+ship(File) ->
+  {ok,F} = file:read_file(static(File)),
+  F.
+
+static(File) ->
+  filename:join(static(),File).
+
+static() ->
+  filename:join(code:priv_dir(sandebox),static).
 
 %% gen_server callbacks
 init(_) ->
