@@ -97,12 +97,29 @@ execute({Mod,Bin}) ->
   {Mod,Bin}.
 
 compile(Str) ->
-  {ok, Tokens, _} = erl_scan:string(Str),
-%%  {ok, Parse} = erl_parse:parse_form(Tokens),
-%%    EOF = [{eof,20}],
-%%  {ok, Mod, Binary} = compile:forms([Parse]),
-%%  code:load_binary(Mod, File, Binary).
-  {ok,Tokens}.
+  try
+    {ok, Toks, _} = erl_scan:string(Str),
+    Parses = [parse_form(Form) || Form <- split_into_forms(Toks)],
+    {ok, Mod, Binary} = compile:forms(Parses),
+    code:load_binary(Mod, "", Binary)
+  catch
+    _:R -> {R,erlang:get_stacktrace()}
+  end.
+
+parse_form(Form) ->
+  {ok,Parse} = erl_parse:parse_form(Form),
+  Parse.
+
+split_into_forms(Toks) ->
+  lists:reverse(split_into_forms(Toks,[[]])).
+split_into_forms([{dot,L}|Toks],[H|T]) ->
+  split_into_forms(Toks,[[],H++[{dot,L}]|T]);
+split_into_forms([Tok|Toks],[H|T]) ->
+  split_into_forms(Toks,[H++[Tok]|T]);
+split_into_forms([],[[]|T]) ->
+  T;
+split_into_forms([],_) ->
+  exit(missing_dot_at_eof).
 
 decode(Str) -> http_uri:decode(plus_to_space(Str)).
 
