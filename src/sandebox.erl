@@ -83,9 +83,16 @@ ensure(X) ->
 do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
     {"GET", []} -> Act(ship("index.html"));
-    {"POST", U} -> Act(flat({U,Req(entity_body)}));
+    {"POST", U} -> Act(flat({U,decode(Req(entity_body))}));
     {M,P}       -> Act("sandebox default: "++M++": "++P)
   end.
+
+decode(Str) ->
+  http_uri:decode(repl(Str)).
+
+repl([$+|R]) -> [$ |repl(R)];
+repl([H|R]) -> [H|repl(R)];
+repl([]) -> [].
 
 flat(T) ->
   lists:flatten(io_lib:fwrite("~p",[T])).
