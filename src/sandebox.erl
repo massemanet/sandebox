@@ -83,19 +83,36 @@ ensure(X) ->
 do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
     {"GET", []} -> Act(ship("index.html"));
-    {"POST", U} -> Act(flat({U,decode(Req(entity_body))}));
+    {"POST", U} -> Act(flat({U,run(html_id(Req(entity_body)))}));
     {M,P}       -> Act("sandebox default: "++M++": "++P)
   end.
 
-decode(Str) ->
-  http_uri:decode(repl(Str)).
-
-repl([$+|R]) -> [$ |repl(R)];
-repl([H|R]) -> [H|repl(R)];
-repl([]) -> [].
-
 flat(T) ->
   lists:flatten(io_lib:fwrite("~p",[T])).
+
+run(Str) ->
+  execute(compile(decode(Str))).
+
+execute({Mod,Bin}) ->
+  {Mod,Bin}.
+
+compile(Str) ->
+  {ok, Tokens, _} = erl_scan:string(Str),
+%%  {ok, Parse} = erl_parse:parse_form(Tokens),
+%%    EOF = [{eof,20}],
+%%  {ok, Mod, Binary} = compile:forms([Parse]),
+%%  code:load_binary(Mod, File, Binary).
+  {ok,Tokens}.
+
+decode(Str) -> http_uri:decode(plus_to_space(Str)).
+
+plus_to_space([$+|R]) -> [$ |plus_to_space(R)];
+plus_to_space([H|R])  -> [H|plus_to_space(R)];
+plus_to_space([])     -> [].
+
+html_id(Str) ->
+  ["code",Code] = string:tokens(Str,"="),
+  Code.
 
 ship(File) ->
   {ok,F} = file:read_file(static(File)),
