@@ -82,29 +82,39 @@ ensure(X) ->
 %% if we crash, there will be a 404.
 do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
-    {"GET", []} -> Act(ship("index.html"));
-    {"POST", U} -> Act(flat({U,run(html_id(Req(entity_body)))}));
-    {M,P}       -> Act("sandebox default: "++M++": "++P)
+    {"GET",[]}        -> Act(ship("index.html"));
+    {"POST",["code"]} -> Act(flat(handle_code(Req)));
+    {M,P}             -> Act("sandebox default: "++M++": "++P)
   end.
 
 flat(T) ->
   lists:flatten(io_lib:fwrite("~p",[T])).
 
-run(Str) ->
-  execute(compile(decode(Str))).
+handle_code(Req) ->
+  try
+    Entities = split_entity(Req(entity_body)),
+    compile(proplists:get_value("code",Entities)),
+    execute(proplists:get_value("run",Entities))
+  catch
+    _:R -> {R,erlang:get_stacktrace()}
+  end.
+
+split_entity(Str) ->
+  pair_up(string:tokens(Str,"=&")).
+
+pair_up([]) -> [];
+pair_up([Tag,Val|Rest]) -> [{Tag,decode(Val)}|pair_up(Rest)].
+
+decode(Str) -> http_uri:decode(plus_to_space(Str)).
 
 execute({Mod,Bin}) ->
   {Mod,Bin}.
 
 compile(Str) ->
-  try
-    {ok, Toks, _} = erl_scan:string(Str),
-    Parses = [parse_form(Form) || Form <- split_into_forms(Toks)],
-    {ok, Mod, Binary} = compile:forms(Parses),
-    code:load_binary(Mod, "", Binary)
-  catch
-    _:R -> {R,erlang:get_stacktrace()}
-  end.
+  {ok, Toks, _} = erl_scan:string(Str),
+  Parses = [parse_form(Form) || Form <- split_into_forms(Toks)],
+  {ok, Mod, Binary} = compile:forms(Parses),
+  code:load_binary(Mod, "", Binary).
 
 parse_form(Form) ->
   {ok,Parse} = erl_parse:parse_form(Form),
@@ -121,15 +131,9 @@ split_into_forms([],[[]|T]) ->
 split_into_forms([],_) ->
   exit(missing_dot_at_eof).
 
-decode(Str) -> http_uri:decode(plus_to_space(Str)).
-
 plus_to_space([$+|R]) -> [$ |plus_to_space(R)];
 plus_to_space([H|R])  -> [H|plus_to_space(R)];
 plus_to_space([])     -> [].
-
-html_id(Str) ->
-  ["code",Code] = string:tokens(Str,"="),
-  Code.
 
 ship(File) ->
   {ok,F} = file:read_file(static(File)),

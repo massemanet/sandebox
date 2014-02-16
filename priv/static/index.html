@@ -3,12 +3,20 @@
     <title>sandebox</title>
   </head>
   <body>
+    <textarea name="run" rows="1" cols="80" form="code-form">
+a:julia().
+    </textarea>
     <textarea name="code" rows="24" cols="80" form="code-form">
 %% erlang goes here
+-module(a).
+-export([julia/0]).
+-record(r,{a=0,b=[]}).
+julia() -> julia(#r{}).
+julia(R) -> best+greatest+R#r.a.
     </textarea>
     <form id="code-form" action="code" method="POST">
       <div align="center">
-        <input type="submit" value="eval">
+        <input type="submit" value="run">
       </div>
     </form>
   </body>
