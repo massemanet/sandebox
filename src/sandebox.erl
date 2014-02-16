@@ -107,8 +107,10 @@ pair_up([Tag,Val|Rest]) -> [{Tag,decode(Val)}|pair_up(Rest)].
 
 decode(Str) -> http_uri:decode(plus_to_space(Str)).
 
-execute({Mod,Bin}) ->
-  {Mod,Bin}.
+execute(Str) ->
+  {ok,Toks,_} = erl_scan:string(Str),
+  {ok,Parses} = erl_parse:parse_exprs(Toks),
+  erl_eval:exprs(Parses,[]).
 
 compile(Str) ->
   {ok, Toks, _} = erl_scan:string(Str),
