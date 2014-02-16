@@ -1,17 +1,17 @@
 function load() {
 
   function tickhandler(oEvent) {
-    document.getElementById("result").innerHTML = oEvent.srcElement.response;
+    document.getElementById("result").innerText = oEvent.srcElement.response;
   };
 
   function req() {
     var oReq = new XMLHttpRequest();
-    run = document.getElementById("run").innerHTML;
-    code = document.getElementById("code").innerHTML;
+    run = document.getElementById("run").textContent;
+    code = document.getElementById("code").textContent;
     oReq.open("POST", "code", true);
     oReq.onloadend = tickhandler;
     oReq.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    oReq.send("code="+code+"&run="+run);
+    oReq.send("code="+encodeURIComponent(code)+"&run="+encodeURIComponent(run));
   };
 
   document.getElementById("eval_button").addEventListener("click",req,false);
