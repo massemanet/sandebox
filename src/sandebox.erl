@@ -83,6 +83,7 @@ ensure(X) ->
 do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
     {"GET",[]}        -> Act(ship("index.html"));
+    {"GET",[File]}    -> Act(ship(File));
     {"POST",["code"]} -> Act(flat(handle_code(Req)));
     {M,P}             -> Act("sandebox default: "++M++": "++P)
   end.
@@ -110,7 +111,8 @@ decode(Str) -> http_uri:decode(plus_to_space(Str)).
 execute(Str) ->
   {ok,Toks,_} = erl_scan:string(Str),
   {ok,Parses} = erl_parse:parse_exprs(Toks),
-  erl_eval:exprs(Parses,[]).
+  {value,Val,_Bindings} = erl_eval:exprs(Parses,[]),
+  Val.
 
 compile(Str) ->
   {ok, Toks, _} = erl_scan:string(Str),

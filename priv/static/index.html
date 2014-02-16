@@ -1,23 +1,21 @@
 <html>
   <head>
     <title>sandebox</title>
+    <script type="text/javascript" src="sandebox.js"></script>
   </head>
   <body>
-    <textarea name="run" rows="1" cols="80" form="code-form">
+    <textarea id="run" rows="1" cols="70">
 a:julia().
     </textarea>
-    <textarea name="code" rows="24" cols="80" form="code-form">
+    <button id="eval_button" type="button">run</button>
+    <textarea id="code" rows="24" cols="80">
 %% erlang goes here
 -module(a).
 -export([julia/0]).
 -record(r,{a=0,b=[]}).
-julia() -> julia(#r{}).
-julia(R) -> best+greatest+R#r.a.
+julia() -> julia(#r{},2).
+julia(R,N) -> N+2+R#r.a.
     </textarea>
-    <form id="code-form" action="code" method="POST">
-      <div align="center">
-        <input type="submit" value="run">
-      </div>
-    </form>
+    <textarea id="result" rows="10" cols="80"></textarea>
   </body>
 </html>
