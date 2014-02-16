@@ -6,8 +6,8 @@ function load() {
 
   function req() {
     var oReq = new XMLHttpRequest();
-    run = document.getElementById("run").textContent;
-    code = document.getElementById("code").textContent;
+    run = document.getElementById("run").value;
+    code = document.getElementById("code").value;
     oReq.open("POST", "code", true);
     oReq.onloadend = tickhandler;
     oReq.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
