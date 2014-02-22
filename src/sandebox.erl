@@ -52,17 +52,17 @@ is_started(A) ->
   lists:member(A,[X || {X,_,_} <- application:which_applications()]).
 
 conf() ->
-  Root =
+  LogDir =
     case application:get_env(kernel,error_logger) of
       {ok,{file,File}} -> filename:dirname(File);
       _ -> filename:join("/tmp",?MODULE)
     end,
   [{port, 8765},
    {server_name,atom_to_list(?MODULE)},
-   {server_root,ensure(Root)},
-   {document_root,ensure(Root)},
+   {server_root,code:lib_dir(?MODULE)},
+   {document_root,static()},
    {modules, [mod_alias,mod_fun,mod_log]},
-   {error_log,filename:join(ensure(Root),"errors.log")},
+   {error_log,filename:join(ensure(LogDir),"errors.log")},
    {handler_function,{?MODULE,do}},
    {mime_types,[{"html","text/html"},
                 {"css","text/css"},
