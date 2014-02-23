@@ -1,4 +1,5 @@
 /ebin/
+/priv/static/CodeMirror
 .eunit
 deps
 *.o
