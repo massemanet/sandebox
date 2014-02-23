@@ -6,12 +6,14 @@
 function load() {
   "use strict";
 
-  var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-      lineNumbers: true,
-      matchBrackets: true,
-      extraKeys: {"Tab":  "indentAuto"},
-      theme: "erlang-dark"
-  });
+  var editor = CodeMirror.fromTextArea(
+                 document.getElementById("code"),
+                 {mode: "erlang",
+                  lineNumbers: true,
+                  matchBrackets: true,
+                  extraKeys: {"Tab":  "indentAuto"},
+                  theme: "erlang-dark"
+                 });
 
   function tickhandler(oEvent) {
     document.getElementById("result").innerText = oEvent.srcElement.response;
