@@ -1,4 +1,10 @@
+/*jshint unused:true, eqnull:true, curly:true, bitwise:true */
+/*jshint undef:true, latedef:true, trailing:true */
+/*jshint browser:true */
+/*global CodeMirror:true */
+
 function load() {
+  "use strict";
 
   var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
       lineNumbers: true,
