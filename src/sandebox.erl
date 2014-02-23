@@ -83,7 +83,7 @@ ensure(X) ->
 do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
     {"GET",[]}        -> Act(ship("index.html"));
-    {"GET",[File]}    -> Act(ship(File));
+    {"GET",File}      -> Act(ship(string:join(File,"/")));
     {"POST",["code"]} -> Act(flat(handle_code(Req)));
     {M,P}             -> Act("sandebox default: "++M++": "++P)
   end.

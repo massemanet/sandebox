@@ -107,12 +107,10 @@ loop({Pid,Ref},S,M) ->
       loop({Pid,Ref},chunk(Chunk,S,M),M);
     {'DOWN',Ref,_,Pid,Reason} ->
       case {S#s.state,Reason} of
-        {sent_headers,defer} -> twohundred(M,S);
+        {has_headers,normal} -> twohundred(M,S);
         {sent_headers,_}     -> twohundred(M,S);
         {_,defer}            -> M#mod.data;
         {_,{redirect,URL}}   -> threeohone(M,S,URL);
-        {init,normal}        -> fourohfour(M,S);
-        {_,normal}           -> twohundred(M,S);
         {_,_}                -> fourohfour(M,S)
       end
   after
