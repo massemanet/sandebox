@@ -7,11 +7,10 @@ function sandebox() {
   "use strict";
 
   var TIMEOUT = 2000;  // ms
-  var timer;
 
   function changehandler() {
-    clearTimeout(timer);
-    timer = setTimeout(req,TIMEOUT);
+    clearTimeout(changehandler.timer);
+    changehandler.timer = setTimeout(req,TIMEOUT);
   }
 
   var editor = CodeMirror.fromTextArea(
