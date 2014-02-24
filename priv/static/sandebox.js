@@ -3,8 +3,16 @@
 /*jshint browser:true */
 /*global CodeMirror:true */
 
-function load() {
+function sandebox() {
   "use strict";
+
+  var TIMEOUT = 2000;  // ms
+  var timer;
+
+  function changehandler() {
+    clearTimeout(timer);
+    timer = setTimeout(req,TIMEOUT);
+  }
 
   var editor = CodeMirror.fromTextArea(
                  document.getElementById("code"),
@@ -15,7 +23,9 @@ function load() {
                   theme: "erlang-dark"
                  });
 
-  function tickhandler(oEvent) {
+  editor.on("change",changehandler);
+
+  function replyhandler(oEvent) {
     document.getElementById("result").innerText = oEvent.srcElement.response;
   }
 
@@ -24,7 +34,7 @@ function load() {
     var run = document.getElementById("run").value;
     var code = editor.getValue();
     xhr.open("POST", "code", true);
-    xhr.onloadend = tickhandler;
+    xhr.onloadend = replyhandler;
     xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     xhr.send("code="+encodeURIComponent(code)+"&run="+encodeURIComponent(run));
   }
@@ -32,4 +42,4 @@ function load() {
   document.getElementById("eval_button").addEventListener("click",req,false);
 
 }
-window.onload = load;
+window.onload = sandebox;
