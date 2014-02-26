@@ -8,7 +8,14 @@ function sandebox() {
 
   function xhr_handler(cm,updater,xhr_reply) {
     if (updater) {
-      updater(cm,{});
+      updater(cm,[{from:CodeMirror.Pos(3,1),
+                   to:CodeMirror.Pos(3,10),
+                   severity:"error",
+                   message:"an error"},
+                  {from:CodeMirror.Pos(5,1),
+                   to:CodeMirror.Pos(5,10),
+                   severity:"warning",
+                   message:"a warning"}]);
     }
     document.getElementById("result").innerText = xhr_reply.srcElement.response;
   }
@@ -17,9 +24,9 @@ function sandebox() {
     var xhr = new XMLHttpRequest();
     var run = document.getElementById("run").value;
     var code = cm.getValue();
-    xhr.open("POST", "code", true);
+    xhr.open("POST","code",true);
     xhr.onloadend = function(xhr_reply) { xhr_handler(cm,updater,xhr_reply); };
-    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
     xhr.send("code="+encodeURIComponent(code)+"&run="+encodeURIComponent(run));
   }
 
@@ -30,6 +37,7 @@ function sandebox() {
                   lineNumbers: true,
                   matchBrackets: true,
                   extraKeys: {"Tab":  "indentAuto"},
+                  gutters: ["CodeMirror-lint-markers"],
                   lint: {async: true,
                          getAnnotations: xhr_request,
                          delay: 2000}
