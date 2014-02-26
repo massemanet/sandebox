@@ -91,12 +91,15 @@ do(Act,Req) ->
 flat(T) ->
   lists:flatten(io_lib:fwrite("~p",[T])).
 
+%% here we can get errors from the scanner, parser, compiler, and runtime.
+%% the various components throw their errors.
 handle_code(Req) ->
   try
     Entities = split_entity(Req(entity_body)),
-    compile(proplists:get_value("code",Entities)),
+    compile_and_load(proplists:get_value("code",Entities)),
     execute(proplists:get_value("run",Entities))
   catch
+    R   -> R;
     _:R -> {R,erlang:get_stacktrace()}
   end.
 
@@ -109,20 +112,48 @@ pair_up([Tag,Val|Rest]) -> [{Tag,decode(Val)}|pair_up(Rest)].
 decode(Str) -> http_uri:decode(plus_to_space(Str)).
 
 execute(Str) ->
-  {ok,Toks,_} = erl_scan:string(Str),
-  {ok,Parses} = erl_parse:parse_exprs(Toks),
+  eval(parse_expr(scan(Str))).
+
+compile_and_load(Str) ->
+  {Mod,Bin} = compile(parse_forms(split_into_forms(scan(Str)))),
+  code:load_binary(Mod, "", Bin).
+
+eval(Parses) ->
   {value,Val,_Bindings} = erl_eval:exprs(Parses,[]),
   Val.
 
-compile(Str) ->
-  {ok, Toks, _} = erl_scan:string(Str),
-  Parses = [parse_form(Form) || Form <- split_into_forms(Toks)],
-  {ok, Mod, Binary} = compile:forms(Parses),
-  code:load_binary(Mod, "", Binary).
+parse_expr(Toks) ->
+  case erl_parse:parse_exprs(Toks) of
+    {ok,Parses} -> Parses;
+    {error,{Line,Mod,Err}} -> throw({parse,Line,ferr(Mod,Err)})
+  end.
+
+scan(Str) ->
+  case erl_scan:string(Str) of
+    {ok,Toks,_} -> Toks;
+    {error,{Line,Mod,Err},Line} -> throw({scan,Line,ferr(Mod,Err)})
+  end.
+
+compile(Parses) ->
+  case compile:forms(Parses,[return,warnings_as_errors]) of
+    {ok, Mod, Binary, []} -> {Mod,Binary};
+    {error,Errs,Warns} -> throw({compile,{Errs,Warns}})
+  end.
+
+%% [{[],[{5,erl_lint,{undefined_function,{jjulia,2}}}]}],
+%%      [{[],[{6,erl_lint,{unused_function,{julia,2}}}]}]}
+
+parse_forms(Forms) ->
+  [parse_form(Form) || Form <- Forms].
 
 parse_form(Form) ->
-  {ok,Parse} = erl_parse:parse_form(Form),
-  Parse.
+  case erl_parse:parse_form(Form) of
+    {ok,Parse} -> Parse;
+    {error,{Line,Mod,Err}} -> throw({parse,Line,ferr(Mod,Err)})
+  end.
+
+ferr(Mod,Err) ->
+  lists:flatten(Mod:format_error(Err)).
 
 split_into_forms(Toks) ->
   lists:reverse(split_into_forms(Toks,[[]])).
