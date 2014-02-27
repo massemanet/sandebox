@@ -129,7 +129,10 @@ eval(Mod,Parses) ->
 
 check_stack(Mod,Stack) ->
   Stk = check_stack(Stack),
-  [{error,find_line(Mod,Stk),Stk}].
+  [{error,find_line(Mod,Stk),remove_lines(Stk)}].
+
+remove_lines([{M,F,A,_}|R]) -> [{M,F,A}|remove_lines(R)];
+remove_lines([]) -> [].
 
 find_line(Mod,[{Mod,_F,_A,[{file,_},{line,Line}|_]}|_]) -> Line;
 find_line(Mod,[_|R]) -> find_line(Mod,R);
