@@ -188,8 +188,8 @@ split_into_forms([Tok|Toks],[H|T]) ->
   split_into_forms(Toks,[H++[Tok]|T]);
 split_into_forms([],[[]|T]) ->
   T;
-split_into_forms([],_) ->
-  error(missing_dot_at_eof).
+split_into_forms([],Fs) ->
+  throw({parse,{error,element(2,hd(hd(Fs))),"missing dot at eof"}}).
 
 plus_to_space([$+|R]) -> [$ |plus_to_space(R)];
 plus_to_space([H|R])  -> [H|plus_to_space(R)];
