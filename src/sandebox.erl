@@ -96,11 +96,11 @@ flat(T) ->
 handle_code(Req) ->
   try
     Entities = split_entity(Req(entity_body)),
-    compile_and_load(proplists:get_value("code",Entities)),
-    execute(proplists:get_value("run",Entities))
+    Mod = compile_and_load(proplists:get_value("code",Entities)),
+    execute(Mod,proplists:get_value("run",Entities))
   catch
-    R   -> R;
-    _:R -> {R,erlang:get_stacktrace()}
+    error:R -> {R,erlang:get_stacktrace()};
+    throw:R -> R
   end.
 
 split_entity(Str) ->
@@ -111,45 +111,67 @@ pair_up([Tag,Val|Rest]) -> [{Tag,decode(Val)}|pair_up(Rest)].
 
 decode(Str) -> http_uri:decode(plus_to_space(Str)).
 
-execute(Str) ->
-  eval(parse_expr(scan(Str))).
+execute(Mod,Str) ->
+  eval(Mod,parse_expr(scan(Str))).
 
 compile_and_load(Str) ->
   {Mod,Bin} = compile(parse_forms(split_into_forms(scan(Str)))),
-  code:load_binary(Mod, "", Bin).
+  code:load_binary(Mod, "", Bin),
+  Mod.
 
-eval(Parses) ->
-  {value,Val,_Bindings} = erl_eval:exprs(Parses,[]),
-  Val.
+eval(Mod,Parses) ->
+  try
+    {value,Val,_Bindings} = erl_eval:exprs(Parses,[]),
+    Val
+  catch
+    _:R -> throw({R,check_stack(Mod,erlang:get_stacktrace())})
+  end.
+
+check_stack(Mod,Stack) ->
+  Stk = check_stack(Stack),
+  [{error,find_line(Mod,Stk),Stk}].
+
+find_line(Mod,[{Mod,_F,_A,[{file,_},{line,Line}|_]}|_]) -> Line;
+find_line(Mod,[_|R]) -> find_line(Mod,R);
+find_line(_,[]) -> 0.
+
+check_stack([{erl_eval,do_apply,_,_}|_]) -> [];
+check_stack([H|T]) -> [H|check_stack(T)].
 
 parse_expr(Toks) ->
   case erl_parse:parse_exprs(Toks) of
-    {ok,Parses} -> Parses;
-    {error,{Line,Mod,Err}} -> throw({parse,Line,ferr(Mod,Err)})
+    {ok,Parses}            -> Parses;
+    {error,{Line,Mod,Err}} -> throw({parse,[{error,Line,ferr(Mod,Err)}]})
   end.
 
 scan(Str) ->
   case erl_scan:string(Str) of
-    {ok,Toks,_} -> Toks;
-    {error,{Line,Mod,Err},Line} -> throw({scan,Line,ferr(Mod,Err)})
+    {ok,Toks,_}                 -> Toks;
+    {error,{Line,Mod,Err},Line} -> throw({scan,[{error,Line,ferr(Mod,Err)}]})
   end.
 
 compile(Parses) ->
   case compile:forms(Parses,[return,warnings_as_errors]) of
     {ok, Mod, Binary, []} -> {Mod,Binary};
-    {error,Errs,Warns} -> throw({compile,{Errs,Warns}})
+    {error,Errs,Warns}    -> throw({compile,dedup(linear(Errs,Warns))})
   end.
 
-%% [{[],[{5,erl_lint,{undefined_function,{jjulia,2}}}]}],
-%%      [{[],[{6,erl_lint,{unused_function,{julia,2}}}]}]}
+dedup([{S1,L1,E1},{_,L1,_}|EWs])   -> dedup([{S1,L1,E1}|EWs]);
+dedup([{S1,L1,E1},{S2,L2,E2}|EWs]) -> [{S1,L1,E1}|dedup([{S2,L2,E2}|EWs])];
+dedup([{S1,L1,E1}])                -> [{S1,L1,E1}].
+
+linear([{[],Errs}],[{[],Warns}]) ->
+  Es = [{error,Line,ferr(Mod,Err)} || {Line,Mod,Err} <- Errs],
+  Ws = [{warning,Line,ferr(Mod,Err)} || {Line,Mod,Err} <- Warns],
+  lists:keysort(2,Es++Ws).
 
 parse_forms(Forms) ->
   [parse_form(Form) || Form <- Forms].
 
 parse_form(Form) ->
   case erl_parse:parse_form(Form) of
-    {ok,Parse} -> Parse;
-    {error,{Line,Mod,Err}} -> throw({parse,Line,ferr(Mod,Err)})
+    {ok,Parse}             -> Parse;
+    {error,{Line,Mod,Err}} -> throw({parse,[{error,Line,ferr(Mod,Err)}]})
   end.
 
 ferr(Mod,Err) ->
@@ -164,7 +186,7 @@ split_into_forms([Tok|Toks],[H|T]) ->
 split_into_forms([],[[]|T]) ->
   T;
 split_into_forms([],_) ->
-  exit(missing_dot_at_eof).
+  error(missing_dot_at_eof).
 
 plus_to_space([$+|R]) -> [$ |plus_to_space(R)];
 plus_to_space([H|R])  -> [H|plus_to_space(R)];
