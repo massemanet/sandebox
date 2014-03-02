@@ -84,12 +84,26 @@ do(Act,Req) ->
   case {Req(method),string:tokens(Req(request_uri),"/")} of
     {"GET",[]}        -> Act(ship("index.html"));
     {"GET",File}      -> Act(ship(string:join(File,"/")));
-    {"POST",["code"]} -> Act(flat(handle_code(Req)));
+    {"POST",["code"]} -> Act(json(handle_code(Req)));
     {M,P}             -> Act("sandebox default: "++M++": "++P)
   end.
 
+json({crash,{Reason,Stack}}) ->
+  jiffy:encode({[{status,crash},
+                 {reason,Reason},
+                 {stack,flat(Stack)}]});
+json({error,{Loc,Items}}) ->
+  jiffy:encode({[{status,error},
+                 {items,[{[{severity,Sev},
+                           {location,Loc},
+                           {description,flat(Desc)},
+                           {line,Line}]} || {Sev,Line,Desc} <- Items]}]});
+json({ok,Resp}) ->
+  jiffy:encode({[{status,ok},
+                 {return,flat(Resp)}]}).
+
 flat(T) ->
-  lists:flatten(io_lib:fwrite("~p",[T])).
+  list_to_binary(lists:flatten(io_lib:fwrite("~p",[T]))).
 
 %% here we can get errors from the scanner, parser, compiler, and runtime.
 %% the various components throw their errors.
@@ -97,10 +111,10 @@ handle_code(Req) ->
   try
     Entities = split_entity(Req(entity_body)),
     Mod = compile_and_load(proplists:get_value("code",Entities)),
-    execute(Mod,proplists:get_value("run",Entities))
+    {ok,execute(Mod,proplists:get_value("run",Entities))}
   catch
-    error:R -> {R,erlang:get_stacktrace()};
-    throw:R -> R
+    error:R -> {crash,{R,erlang:get_stacktrace()}};
+    throw:R -> {error,R}
   end.
 
 split_entity(Str) ->

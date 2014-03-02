@@ -7,6 +7,7 @@ function sandebox() {
   "use strict";
 
   function xhr_handler(cm,updater,xhr_reply) {
+    var foo = JSON.parse(xhr_reply.srcElement.response);
     if (updater) {
       updater(cm,[{from:CodeMirror.Pos(3,1),
                    to:CodeMirror.Pos(3,10),
@@ -17,7 +18,7 @@ function sandebox() {
                    severity:"warning",
                    message:"a warning"}]);
     }
-    document.getElementById("result").innerText = xhr_reply.srcElement.response;
+    document.getElementById("result").innerText = foo;
   }
 
   function xhr_request(cm,updater) {
