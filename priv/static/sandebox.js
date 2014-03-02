@@ -8,17 +8,26 @@ function sandebox() {
 
   function xhr_handler(cm,updater,xhr_reply) {
     var foo = JSON.parse(xhr_reply.srcElement.response);
-    if (updater) {
-      updater(cm,[{from:CodeMirror.Pos(3,1),
-                   to:CodeMirror.Pos(3,10),
-                   severity:"error",
-                   message:"an error"},
-                  {from:CodeMirror.Pos(5,1),
-                   to:CodeMirror.Pos(5,10),
-                   severity:"warning",
-                   message:"a warning"}]);
+    switch (foo.status) {
+      case "ok":
+        document.getElementById("result").innerText = foo.result;
+        break;
+      case "error":
+        if (updater) {
+          updater(cm,[{from:CodeMirror.Pos(3,1),
+                       to:CodeMirror.Pos(3,10),
+                       severity:"error",
+                       message:"an error"},
+                      {from:CodeMirror.Pos(5,1),
+                       to:CodeMirror.Pos(5,10),
+                       severity:"warning",
+                       message:"a warning"}]);
+        }
+        break;
+      case "crash": {}
+        break;
+      default: {}
     }
-    document.getElementById("result").innerText = foo;
   }
 
   function xhr_request(cm,updater) {

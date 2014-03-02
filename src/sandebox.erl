@@ -100,7 +100,7 @@ json({error,{Loc,Items}}) ->
                            {line,Line}]} || {Sev,Line,Desc} <- Items]}]});
 json({ok,Resp}) ->
   jiffy:encode({[{status,ok},
-                 {return,flat(Resp)}]}).
+                 {result,flat(Resp)}]}).
 
 flat(T) ->
   list_to_binary(lists:flatten(io_lib:fwrite("~p",[T]))).
