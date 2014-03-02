@@ -7,21 +7,26 @@ function sandebox() {
   "use strict";
 
   function xhr_handler(cm,updater,xhr_reply) {
-    var foo = JSON.parse(xhr_reply.srcElement.response);
-    switch (foo.status) {
+    var response = JSON.parse(xhr_reply.srcElement.response);
+    switch (response.status) {
       case "ok":
-        document.getElementById("result").innerText = foo.result;
+        if (updater) {
+          updater(cm,[]);
+        }
+        document.getElementById("result").innerText = response.result;
         break;
       case "error":
         if (updater) {
-          updater(cm,[{from:CodeMirror.Pos(3,1),
-                       to:CodeMirror.Pos(3,10),
-                       severity:"error",
-                       message:"an error"},
-                      {from:CodeMirror.Pos(5,1),
-                       to:CodeMirror.Pos(5,10),
-                       severity:"warning",
-                       message:"a warning"}]);
+          var lints = [];
+          var is = response.items;
+          for ( var i=0; i < is.length; i++) {
+            lints.push({from: CodeMirror.Pos(is[i].line-1,0),
+                        to:   CodeMirror.Pos(is[i].line-1,0),
+                        severity: is[i].severity,
+                        message:  is[i].description});
+          }
+          updater(cm,lints);
+          document.getElementById("result").innerText = "";
         }
         break;
       case "crash": {}
