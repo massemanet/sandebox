@@ -24,8 +24,8 @@ function sandebox() {
 
   editor.on("change",changehandler);
 
-  function replyhandler(oEvent) {
-    document.getElementById("result").innerText = oEvent.srcElement.response;
+  function replyhandler(rep) {
+    document.getElementById("result").textContent = rep.target.response;
   }
 
   function req() {
