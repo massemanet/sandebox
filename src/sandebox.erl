@@ -138,22 +138,12 @@ eval(Mod,Parses) ->
     {value,Val,_Bindings} = erl_eval:exprs(Parses,[]),
     Val
   catch
-    _:R -> throw({R,check_stack(Mod,erlang:get_stacktrace())})
+    _:R -> throw({eval,[{error,find_line(Mod,erlang:get_stacktrace()),R}]})
   end.
-
-check_stack(Mod,Stack) ->
-  Stk = check_stack(Stack),
-  [{error,find_line(Mod,Stk),remove_lines(Stk)}].
-
-remove_lines([{M,F,A,_}|R]) -> [{M,F,A}|remove_lines(R)];
-remove_lines([]) -> [].
 
 find_line(Mod,[{Mod,_F,_A,[{file,_},{line,Line}|_]}|_]) -> Line;
 find_line(Mod,[_|R]) -> find_line(Mod,R);
 find_line(_,[]) -> 0.
-
-check_stack([{erl_eval,do_apply,_,_}|_]) -> [];
-check_stack([H|T]) -> [H|check_stack(T)].
 
 parse_expr(Toks) ->
   case erl_parse:parse_exprs(Toks) of
@@ -177,9 +167,12 @@ dedup([{S1,L1,E1},{_,L1,_}|EWs])   -> dedup([{S1,L1,E1}|EWs]);
 dedup([{S1,L1,E1},{S2,L2,E2}|EWs]) -> [{S1,L1,E1}|dedup([{S2,L2,E2}|EWs])];
 dedup([{S1,L1,E1}])                -> [{S1,L1,E1}].
 
-linear([{[],Errs}],[{[],Warns}]) ->
+linear([{[],Errs}],[{[],Wrns}]) -> linear(Errs,Wrns);
+linear([],[{[],Wrns}])          -> linear([],Wrns);
+linear([{[],Errs}],[])          -> linear(Errs,[]);
+linear(Errs,Wrns) ->
   Es = [{error,Line,ferr(Mod,Err)} || {Line,Mod,Err} <- Errs],
-  Ws = [{warning,Line,ferr(Mod,Err)} || {Line,Mod,Err} <- Warns],
+  Ws = [{warning,Line,ferr(Mod,Err)} || {Line,Mod,Err} <- Wrns],
   lists:keysort(2,Es++Ws).
 
 parse_forms(Forms) ->

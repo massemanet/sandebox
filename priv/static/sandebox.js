@@ -26,10 +26,15 @@ function sandebox() {
                         message:  is[i].description});
           }
           updater(cm,lints);
-          document.getElementById("result").innerText = "";
         }
+        document.getElementById("result").innerText = "";
         break;
-      case "crash": {}
+      case "crash":
+        if (updater) {
+          updater(cm,[]);
+        }
+        var msg = response.reason+"\n"+response.stack;
+        document.getElementById("result").innerText = msg;
         break;
       default: {}
     }
